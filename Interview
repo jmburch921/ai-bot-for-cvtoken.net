@@ -1,0 +1,82 @@
+# ai-bot-for-cvtoken.net
+Creating a Ai bot for cvtoken.net
+
+// This script asks the user a series of job interview questions.
+// You can edit this script to define your own questions.
+state interview {
+	pattern "start" answer start();
+	pattern "init questions" answer init();
+	pattern "*" topic "interview" answer interview();
+
+    function init() {
+	    if (!speaker.has(#associated, #administrator)) {
+	        return null;
+	    }
+	    #interview.question = init;
+	    #interview.question =+ { question : "What is your full name?", value : #name };
+	    #interview.question =+ { question : "What is your email address?", value : #emailaddress };
+	    #interview.question =+ { question : "What is your phone number?", value : #phone };
+	    #interview.question =+ { question : "Which job are you applying for?", value : #job };
+	    #interview.question =+ { question : "Are you presently employeed? <button>Yes</button> <button>No</button>", value : #employeed };
+	    #interview.question =+ { question : "What was your last job title?", value : #jobtitle };
+	    #interview.question =+ { question : "Do you have a university or college degree? <button>Yes</button> <button>No</button>", value : #college, followup : { "Yes" : "What is your degree in?", value : #degree } };
+	    #interview.question =+ { question : "How many years of experience do you have in this industry?", value : #experience };
+	    #interview.question =+ { question : "What city, state, and country are you current living in?", value : #address };
+	    #interview.question =+ { question : "When are you available to start?", value : #startDate };
+	    #interview.question =+ { question : "What salary range do you expect to earn?", value : #salary };
+  #interview.question =+ { question : "Do you want to sign up for my autoplly feature? <button>Yes</button> <button>No</button>", value : #autoplly };
+
+
+	    
+	    return "Interview questions initialized.";
+	}
+	
+	function start() {
+	    conversation.topic = "interview";
+	    conversation.questionNumber = 0;
+	    conversation.resume = new Resume();
+	    return "I am going to ask you a series of questions to get you added to C V T jobs.  Please answer the questions accuratly.";
+	}
+	
+	// Each question is asked in order, with possible followup questions.
+	// A question index is used to track the current question.
+	// The answers are stored in a Resume object and emailed to hr.
+	function interview() {
+	    var question = conversation.question;
+	    var resume = conversation.resume;
+	    if (question != null) {
+    	    resume.set(question.value, star.toString());
+    	    conversation.resume.append(#question, question.value);
+    	    if (question.followup != null) {
+    	        var followup = question.followup.get(star.toString().toSymbol());
+    	        if (followup != null) {
+    	            conversation.question = question.followup;
+    	            return followup;
+    	        }
+    	    }
+	    }
+	    conversation.questionNumber = conversation.questionNumber + 1;
+	    var questionNumber = conversation.questionNumber;
+	    var total = #interview.size(#question);
+	    if (questionNumber < total) {
+	        var question = #interview.get(#question, questionNumber - 1);
+	        if (question != null) {
+	            conversation.question = question;
+	            return question.question;
+	        }
+	    }
+	    
+	    #resumes.instance =+ resume;
+	    
+	    message = "<h1>Resume</h1> ";
+	    for (key in resume.question) {
+	        message = message + key.substring(1, key.length()) + " : " + resume[key] + " <br/>";
+	    }
+		Email.email("addmyresume@cvtoken.ner", "New resume", message);
+		
+	    conversation.topic = null;
+	    conversation.questionNumber = null;
+	    conversation.resume = null;
+	    return "Thank you for signing up for CVT jobs please check your email to verify and login to your profile page, and please let me know if I can help you with anything else.";
+	}
+}
